@@ -1,1 +1,324 @@
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <Servo.h>
+#include <SoftwareSerial.h>
+#include <DS3231.h>
+DS3231  rtc(SDA, SCL);
+SoftwareSerial sim(5, 6);
+// Connect your yellow pin to Pin12 on Arduino
+#define ONE_WIRE_BUS 8
+ 
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+Servo myservo;
+// Pass our oneWire reference to Dallas Temperature sensor 
+DallasTemperature sensors(&oneWire);
+int _timeout;
+String _buffer;
+String number = "+639162289112"; //-> change with your number
+int posOpn = 0;    // variable to store the servo position
+int posCls = 90;
+char* timeTracker;D
+
+void setup()
+{
+  // initialize the Serial Monitor at a baud rate of 9600.
+  Serial.begin(9600);
+  rtc.begin();
+  sensors.begin();
+  myservo.attach(3); 
+  sim.begin(9600);
+  _buffer.reserve(50);
+  pinMode(4,INPUT);//IR
+  // The following lines can be uncommented to set the date and time
+  //rtc.setDOW(FRIDAY);     // Set Day-of-Week to SUNDAY
+  //rtc.setTime(05, 22, 00);     // Set the time to 12:00:00 (24hr format)
+  //rtc.setDate(26, 4, 2024);   // Set the date to January 1st, 2014
+}
+ 
+void loop(){ 
+  timeTracker = rtc.getTimeStr();
+  // Send Day-of-Week
+  Serial.print(rtc.getDOWStr());
+  Serial.print(" ");
+  
+  // Send date
+  Serial.print(rtc.getDateStr());
+  Serial.print(" -- ");
+
+  // Send time
+  Serial.println(rtc.getTimeStr());
+  
+  // Wait one second before repeating :)
+  delay (1000);
+
+  //1ST INTERVAL
+  if (strcmp(timeTracker,"06:10:00")==0){
+    FirstWT();
+    delay(1000);
+  }
+  //2ND INTERVAL
+   else if (strcmp(timeTracker,"08:10:00")==0){
+    SecondWT();
+    delay(1000);
+  }
+  //3RD INTERVAL
+   else if (strcmp(timeTracker,"10:10:00")==0){
+    ThirdWT();
+    delay(1000);
+  }
+  //4TH INTERVAL
+    else if (strcmp(timeTracker,"12:10:00")==0){
+    FourthWT();
+    delay(1000);
+}
+}
+void FirstWT(){
+  // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+  sensors.requestTemperatures(); 
+  
+  Serial.print("Celsius temperature: ");
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
+  delay(1000);
+  int gettemp = sensors.getTempCByIndex(0);
+  firstIntervalFeed(gettemp);
+  delay(1000);
+  TempNotif(gettemp);
+  delay(1000);
+  irSensors();
+}
+void SecondWT(){
+  // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+  sensors.requestTemperatures(); 
+  
+  Serial.print("Celsius temperature: ");
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
+  delay(1000);
+  int gettemp = sensors.getTempCByIndex(0);
+  secIntervalFeed(gettemp);
+  delay(1000);
+  TempNotif(gettemp);
+  delay(1000);
+  irSensors();
+}
+void firstIntervalFeed(float a)
+{
+  //Optimal Temp
+  if (a>=27.00 && a<=30.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+  //low
+  else if (a<26.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.print("Feed Container Open!");
+    delay(1000);
+  }
+  //High
+    else if (a>31.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+}
+//2nd Interval feed
+void secIntervalFeed(float a)
+{
+  //Optimal Temp
+  if (a>=27.00 && a<=30.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Open!");
+    delay(1000);
+  }
+  //low
+  else if (a<26.00){
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Close!");
+    delay(1000);
+  }
+  //High
+    else if (a>31.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Open!");
+    delay(1000);
+  }
+}
+void ThirdWT()
+{
+  //WaterTemp
+  sensors.requestTemperatures(); 
+  Serial.print("Celsius temperature: ");
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
+  int gettemp = sensors.getTempCByIndex(0);
+  thirdIntervalFeed(gettemp);
+  delay(1000);
+    TempNotif(gettemp);
+  delay(1000);
+  irSensors();
+}
+//3rd Interval feed
+void thirdIntervalFeed(float a)
+{
+  //Optimal Temp
+  if (a>=27.00 && a<=30.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+  //low
+  else if (a<26.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+  //High
+    else if (a>31.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+}
+//gather temp at fourth interval
+void FourthWT()
+{
+  //WaterTemp
+  sensors.requestTemperatures(); 
+  Serial.print("Celsius temperature: ");
+  Serial.print(sensors.getTempCByIndex(0)); 
+  Serial.print(" - Fahrenheit temperature: ");
+  Serial.println(sensors.getTempFByIndex(0));
+  int gettemp = sensors.getTempCByIndex(0);
+  FrthIntervalFeed(gettemp);
+  delay(1000);  
+  TempNotif(gettemp);
+  delay(1000);
+  irSensors();
+}
+//4th Interval feed
+void FrthIntervalFeed(float a)
+{
+  //Optimal Temp
+  if (a>=27.00 && a<=30.00){
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Close!");
+    delay(1000);
+  }
+  //low
+  else if (a<26.00){
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Close!");
+    delay(1000);
+  }
+  //High
+    else if (a>31.00){
+    myservo.write(posOpn);              // tell servo to go to position in variable 'pos'
+    delay(500);
+    myservo.write(posCls);
+    delay(1500);
+    Serial.println("Feed Container Open!");
+    delay(1000);
+  }
+}
+void TempNotif(float a)
+{
+  if(a>30){
+      Serial.println ("Sending Message");
+  sim.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(200);
+  //Serial.println ("Set SMS Number");
+  sim.println("AT+CMGS=\"" + number + "\"\r"); //Mobile phone number to send message
+  delay(200);
+  String SMS = "The Water Temperature is Above Optimal Range!";
+  sim.println("Celsius temperature: ");
+  sim.println(sensors.getTempCByIndex(0));
+  sim.println("Farenheit temperature: ");
+  sim.println(sensors.getTempFByIndex(0));
+  sim.println(SMS);
+  delay(100);
+  sim.println((char)26);// ASCII code of CTRL+Z
+  delay(200);
+  _buffer = _readSerial();
+    }
+
+  else if(a<27){
+  Serial.println ("Sending Message");
+  sim.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(200);
+  //Serial.println ("Set SMS Number");
+  sim.println("AT+CMGS=\"" + number + "\"\r"); //Mobile phone number to send message
+  delay(200);
+  String SMS = "The Water Temperature is Below Optimal Range!";
+  sim.println("Celsius temperature: ");
+  sim.println(sensors.getTempCByIndex(0));
+  sim.println("Farenheit temperature: ");
+  sim.println(sensors.getTempFByIndex(0));
+  sim.println(SMS);
+  delay(100);
+  sim.println((char)26);// ASCII code of CTRL+Z
+  delay(200);
+  _buffer = _readSerial();
+  }
+}
+String _readSerial() {
+  _timeout = 0;
+  while  (!sim.available() && _timeout < 12000  )
+  {
+    delay(13);
+    _timeout++;
+  }
+  if (sim.available()) {
+    return sim.readString();
+  }
+}
+void irSensors()
+{
+  if (digitalRead(4)== HIGH)
+  {
+    Serial.println("Container Not Empty");
+    
+    delay(1000);
+  }
+  else 
+  {
+    
+    Serial.println("Container EMPTY!");
+    delay(1000);
+    
+  }
+  
+}
 
